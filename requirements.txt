@@ -1,0 +1,18 @@
+# Core
+openai>=1.50.0
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+pydantic>=2.9.0
+pydantic-settings>=2.6.0
+PyJWT>=2.8.0
+
+# Database
+aiomysql>=0.2.0
+
+# Semantic search (fallback)
+scikit-learn>=1.5.0
+numpy>=1.26.0
+
+# Optional: true multilingual semantic search with embeddings (~500MB model download on first run)
+# Uncomment to enable sentence-transformers instead of TF-IDF:
+# sentence-transformers>=3.3.0

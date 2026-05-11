@@ -1,0 +1,30 @@
+### Health check
+GET http://localhost:8000/health
+
+###
+
+### Chat — test SnoutBot
+POST http://localhost:8000/chat
+Content-Type: application/json
+Authorization: Bearer 2e183f088cdd87665600ad47a5615f3c8f139db24aad311370f4f82129348594bcd359b4125f20ee
+
+{
+    "message": "Ciao! Come ti chiami?",
+    "user_id": "00000000-0000-0000-0000-000000000001",
+    "context": "Sei SnoutBot, l'assistente AI di DogMatch. L'utente si chiama Marco.",
+    "history": []
+}
+
+###
+
+### Chat — cerca cane
+POST http://localhost:8000/chat
+Content-Type: application/json
+Authorization: Bearer 2e183f088cdd87665600ad47a5615f3c8f139db24aad311370f4f82129348594bcd359b4125f20ee
+
+{
+    "message": "Cerco un cane calmo per il mio Labrador",
+    "user_id": "00000000-0000-0000-0000-000000000001",
+    "context": "Sei SnoutBot, l'assistente AI di DogMatch. L'utente si chiama Marco. Ha un Labrador maschio di 3 anni.",
+    "history": []
+}
