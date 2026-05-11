@@ -1,20 +1,24 @@
 import asyncio
+import hashlib
 import logging
+from collections import OrderedDict
 from typing import Optional
 
 from database import get_db
 
+# LRU cache in-memory: {dog_id: (hash, ndarray)}
+_MAX_CACHE = 500
+_emb_cache: OrderedDict = OrderedDict()
+
 logger = logging.getLogger(__name__)
 
-# Try sentence-transformers for true multilingual semantic search;
-# fall back to TF-IDF if not installed.
 try:
     from sentence_transformers import SentenceTransformer
     import numpy as np
 
     _st_model = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
     _USE_EMBEDDINGS = True
-    logger.info("Sentence-transformers caricato: ricerca semantica attiva.")
+    logger.info("Sentence-transformers caricato: ricerca semantica con persistenza attiva.")
 except ImportError:
     from sklearn.feature_extraction.text import TfidfVectorizer
     from sklearn.metrics.pairwise import cosine_similarity
@@ -38,15 +42,31 @@ def _build_dog_text(dog: dict) -> str:
     return " ".join(p for p in parts if p).lower()
 
 
-def _similarity_embeddings(query: str, texts: list) -> list:
-    all_texts = [query] + texts
-    embeddings = _st_model.encode(all_texts, convert_to_numpy=True)
-    q = embeddings[0:1]
-    docs = embeddings[1:]
-    norms = np.linalg.norm(docs, axis=1, keepdims=True)
+def _text_hash(text: str) -> str:
+    return hashlib.sha256(text.encode()).hexdigest()
+
+
+def _get_cached(dog_id: int, h: str, blob: bytes) -> "np.ndarray":
+    entry = _emb_cache.get(dog_id)
+    if entry and entry[0] == h:
+        _emb_cache.move_to_end(dog_id)
+        return entry[1]
+    emb = np.frombuffer(blob, dtype=np.float32).copy()
+    _emb_cache[dog_id] = (h, emb)
+    if len(_emb_cache) > _MAX_CACHE:
+        _emb_cache.popitem(last=False)
+    return emb
+
+
+def _encode(texts: list) -> "np.ndarray":
+    return _st_model.encode(texts, convert_to_numpy=True)
+
+
+def _cosine_scores(query_emb: "np.ndarray", dog_matrix: "np.ndarray") -> list:
+    q = query_emb / (np.linalg.norm(query_emb) or 1e-8)
+    norms = np.linalg.norm(dog_matrix, axis=1, keepdims=True)
     norms = np.where(norms == 0, 1e-8, norms)
-    q_norm = q / (np.linalg.norm(q) or 1e-8)
-    return (docs / norms @ q_norm.T).flatten().tolist()
+    return (dog_matrix / norms @ q).tolist()
 
 
 def _similarity_tfidf(query: str, texts: list) -> list:
@@ -60,13 +80,28 @@ def _similarity_tfidf(query: str, texts: list) -> list:
         return [0.0] * len(texts)
 
 
+async def _save_embeddings_batch(items: list) -> None:
+    """Persist computed embeddings to DB. items = [(dog_id, hash, embedding)]"""
+    try:
+        async with get_db() as cur:
+            for dog_id, h, emb in items:
+                blob = emb.astype(np.float32).tobytes()
+                await cur.execute(
+                    "UPDATE cani SET embedding = %s, embedding_hash = %s WHERE id = %s",
+                    (blob, h, dog_id),
+                )
+        logger.info("Salvati %d embedding nel database.", len(items))
+    except Exception as exc:
+        logger.warning("Errore salvataggio embedding: %s", exc)
+
+
 async def search_dogs_semantic(query: str, filters: Optional[dict] = None) -> str:
     filters = filters or {}
 
     sql = """
         SELECT c.id, c.nome, c.razza, c.sesso, c.eta, c.taglia,
                c.descrizione, c.info_sanitarie, c.is_verificato,
-               c.disponibilita_riproduttiva,
+               c.disponibilita_riproduttiva, c.embedding, c.embedding_hash,
                u.nome AS proprietario_nome, u.provincia
         FROM cani c
         JOIN utenti u ON c.utente_id = u.id
@@ -90,7 +125,7 @@ async def search_dogs_semantic(query: str, filters: Optional[dict] = None) -> st
         sql += " AND c.disponibilita_riproduttiva = %s"
         params.append(1 if filters["disponibile_riproduzione"] else 0)
 
-    sql += " LIMIT 100"
+    sql += " LIMIT 200"
 
     async with get_db() as cursor:
         await cursor.execute(sql, params)
@@ -102,7 +137,39 @@ async def search_dogs_semantic(query: str, filters: Optional[dict] = None) -> st
     texts = [_build_dog_text(d) for d in dogs]
 
     if _USE_EMBEDDINGS:
-        scores = await asyncio.to_thread(_similarity_embeddings, query.lower(), texts)
+        # Compute query embedding
+        query_emb = await asyncio.to_thread(_encode, [query.lower()])
+        query_emb = query_emb[0]
+
+        # Separate dogs with valid cached embeddings from those needing computation
+        cached, to_compute = [], []
+        for dog, text in zip(dogs, texts):
+            h = _text_hash(text)
+            blob = dog.get("embedding")
+            if blob and dog.get("embedding_hash") == h:
+                emb = _get_cached(dog["id"], h, blob)
+                cached.append((dog, emb))
+            else:
+                to_compute.append((dog, text, h))
+
+        # Batch-encode only the dogs that need it
+        new_embeddings = []
+        if to_compute:
+            new_texts = [t for _, t, _ in to_compute]
+            computed = await asyncio.to_thread(_encode, new_texts)
+            to_save = []
+            for (dog, _, h), emb in zip(to_compute, computed):
+                new_embeddings.append((dog, emb))
+                to_save.append((dog["id"], h, emb))
+            asyncio.create_task(_save_embeddings_batch(to_save))
+
+        # Rebuild ordered list matching original `dogs` order
+        dog_emb_map = {d["id"]: emb for d, emb in cached}
+        dog_emb_map.update({d["id"]: emb for d, emb in new_embeddings})
+        dog_embeddings = [dog_emb_map[d["id"]] for d in dogs]
+
+        dog_matrix = np.stack(dog_embeddings)
+        scores = _cosine_scores(query_emb, dog_matrix)
     else:
         scores = await asyncio.to_thread(_similarity_tfidf, query.lower(), texts)
 

@@ -1,3 +1,5 @@
+import asyncio
+import json
 import logging
 from contextlib import asynccontextmanager
 from typing import Optional
@@ -5,11 +7,18 @@ from typing import Optional
 import jwt
 from fastapi import FastAPI, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 
 from config import settings
 from models import ChatRequest, ChatResponse
-from orchestrator import get_ai_response
-from database import create_pool, close_pool, ensure_memory_table
+from orchestrator import get_ai_response, get_ai_response_stream
+from database import (
+    create_pool, close_pool,
+    ensure_memory_table, ensure_embeddings_column,
+    ensure_cani_created_at, ensure_notifications_table,
+)
+from rate_limit import check_rate_limit
+from background import notification_loop
 
 logging.basicConfig(
     level=logging.INFO,
@@ -24,8 +33,17 @@ async def lifespan(app: FastAPI):
         logger.warning("JWT_SECRET non configurato — autenticazione disabilitata (solo sviluppo).")
     await create_pool()
     await ensure_memory_table()
-    logger.info("Database pool inizializzato.")
+    await ensure_embeddings_column()
+    await ensure_cani_created_at()
+    await ensure_notifications_table()
+    bg_task = asyncio.create_task(notification_loop())
+    logger.info("Database pool e notification scanner inizializzati.")
     yield
+    bg_task.cancel()
+    try:
+        await bg_task
+    except asyncio.CancelledError:
+        pass
     await close_pool()
     logger.info("Database pool chiuso.")
 
@@ -70,9 +88,34 @@ async def chat(
     authorization: Optional[str] = Header(default=None),
 ):
     _verify_jwt(authorization)
+    check_rate_limit(request.user_id)
     try:
         risposta = await get_ai_response(request)
         return ChatResponse(risposta=risposta)
     except Exception as e:
         logger.error("Errore generazione risposta AI: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail="Errore interno del servizio AI.")
+
+
+@app.post("/chat/stream")
+async def chat_stream(
+    request: ChatRequest,
+    authorization: Optional[str] = Header(default=None),
+):
+    _verify_jwt(authorization)
+    check_rate_limit(request.user_id)
+
+    async def event_generator():
+        try:
+            async for chunk in get_ai_response_stream(request):
+                yield chunk
+        except Exception as e:
+            logger.error("Errore streaming AI: %s", e, exc_info=True)
+            yield f"data: {json.dumps({'error': 'Errore interno del servizio AI.'})}\n\n"
+            yield "data: [DONE]\n\n"
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )

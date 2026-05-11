@@ -16,3 +16,7 @@ numpy>=1.26.0
 # Optional: true multilingual semantic search with embeddings (~500MB model download on first run)
 # Uncomment to enable sentence-transformers instead of TF-IDF:
 # sentence-transformers>=3.3.0
+
+# Development / testing
+pytest>=8.0.0
+pytest-asyncio>=0.24.0
