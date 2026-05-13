@@ -1,7 +1,10 @@
+import logging
 import aiomysql
 from contextlib import asynccontextmanager
 from typing import Optional
 from config import settings
+
+logger = logging.getLogger(__name__)
 
 _pool: Optional[aiomysql.Pool] = None
 
@@ -35,6 +38,59 @@ async def get_db():
     async with _pool.acquire() as conn:
         async with conn.cursor(aiomysql.DictCursor) as cursor:
             yield cursor
+
+
+async def ensure_cani_created_at() -> None:
+    async with get_db() as cur:
+        await cur.execute("""
+            SELECT COUNT(*) AS cnt
+            FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME   = 'cani'
+              AND COLUMN_NAME  = 'creato_at'
+        """)
+        row = await cur.fetchone()
+        if row["cnt"] == 0:
+            await cur.execute(
+                "ALTER TABLE cani ADD COLUMN creato_at DATETIME DEFAULT CURRENT_TIMESTAMP"
+            )
+            logger.info("Colonna creato_at aggiunta alla tabella cani.")
+
+
+async def ensure_notifications_table() -> None:
+    async with get_db() as cur:
+        await cur.execute("""
+            CREATE TABLE IF NOT EXISTS notifiche (
+                id        INT AUTO_INCREMENT PRIMARY KEY,
+                user_id   VARCHAR(36) NOT NULL,
+                cane_id   INT         NOT NULL,
+                messaggio TEXT        NOT NULL,
+                letta     TINYINT(1)  NOT NULL DEFAULT 0,
+                creata_at DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY uq_user_cane (user_id, cane_id),
+                INDEX idx_user_letta (user_id, letta)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        """)
+
+
+async def ensure_embeddings_column() -> None:
+    async with get_db() as cur:
+        await cur.execute("""
+            SELECT COUNT(*) AS cnt
+            FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME   = 'cani'
+              AND COLUMN_NAME  = 'embedding'
+        """)
+        row = await cur.fetchone()
+        if row["cnt"] == 0:
+            await cur.execute(
+                "ALTER TABLE cani ADD COLUMN embedding MEDIUMBLOB NULL"
+            )
+            await cur.execute(
+                "ALTER TABLE cani ADD COLUMN embedding_hash VARCHAR(64) NULL"
+            )
+            logger.info("Colonne embedding e embedding_hash aggiunte alla tabella cani.")
 
 
 async def ensure_memory_table() -> None:
