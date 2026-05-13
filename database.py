@@ -7,7 +7,7 @@ from config import settings
 logger = logging.getLogger(__name__)
 
 _pool: Optional[aiomysql.Pool] = None
-
+# ciao
 
 async def create_pool() -> None:
     global _pool
