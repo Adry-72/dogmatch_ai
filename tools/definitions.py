@@ -192,6 +192,30 @@ TOOLS = [
     {
         "type": "function",
         "function": {
+            "name": "search_web",
+            "description": (
+                "Cerca informazioni aggiornate sul web usando Tavily. "
+                "Usalo per domande su: salute canina (sintomi, malattie, farmaci), "
+                "addestramento, alimentazione, leggi italiane sui cani, notizie recenti, "
+                "eventi cinofili, o qualsiasi argomento non coperto dalla knowledge base. "
+                "Preferisci sempre get_knowledge_base_info per argomenti DogMatch; "
+                "usa search_web quando la KB non ha la risposta o l'informazione potrebbe essere aggiornata."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "Termine di ricerca chiaro e specifico in italiano o inglese, es: 'displasia anca cane sintomi', 'legge microchip cani Italia 2024'",
+                    },
+                },
+                "required": ["query"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "moderation_flag",
             "description": (
                 "Segnala contenuti inappropriati, richieste non etiche o pratiche "
