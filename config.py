@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     allowed_origins: str = "http://localhost:3000"
 
+    tavily_api_key: Optional[str] = None
+
     model: str = "gpt-4o"
     max_tokens: int = 1024
     max_tool_iterations: int = 5

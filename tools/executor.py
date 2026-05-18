@@ -2,6 +2,7 @@ import logging
 from tools.search_dogs import search_dogs_semantic
 from tools.profile import analyze_user_profile, update_user_profile
 from tools.knowledge import get_knowledge_base_info
+from tools.search_web import search_web
 from tools.memory import save_memory, save_reminder, clear_reminder
 from tools.moderation import moderation_flag
 
@@ -17,6 +18,9 @@ _TOOL_MAP = {
     ),
     "get_knowledge_base_info": lambda inp, uid: get_knowledge_base_info(
         topic=inp["topic"],
+    ),
+    "search_web": lambda inp, uid: search_web(
+        query=inp["query"],
     ),
     "update_user_profile": lambda inp, uid: update_user_profile(
         user_id=inp.get("user_id", uid),

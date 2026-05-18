@@ -54,7 +54,7 @@ async def _user_preference_text(user_id: str) -> str:
 async def _save_notification(user_id: str, cane_id: int, messaggio: str) -> None:
     async with get_db() as cur:
         await cur.execute(
-            "INSERT IGNORE INTO notifiche (user_id, cane_id, messaggio) VALUES (%s, %s, %s)",
+            "INSERT IGNORE INTO ai_notifiche (user_id, cane_id, messaggio) VALUES (%s, %s, %s)",
             (user_id, cane_id, messaggio),
         )
 
@@ -62,10 +62,10 @@ async def _save_notification(user_id: str, cane_id: int, messaggio: str) -> None
 # ── Public API ────────────────────────────────────────────────────────────────
 
 async def load_unread_notifications(user_id: str) -> list[str]:
-    """Carica le notifiche non lette e le marca subito come lette."""
+    """Carica le ai_notifiche non lette e le marca subito come lette."""
     async with get_db() as cur:
         await cur.execute(
-            "SELECT id, messaggio FROM notifiche WHERE user_id = %s AND letta = 0",
+            "SELECT id, messaggio FROM ai_notifiche WHERE user_id = %s AND letta = 0",
             (user_id,),
         )
         rows = await cur.fetchall()
@@ -73,13 +73,13 @@ async def load_unread_notifications(user_id: str) -> list[str]:
             ids = [r["id"] for r in rows]
             placeholders = ",".join(["%s"] * len(ids))
             await cur.execute(
-                f"UPDATE notifiche SET letta = 1 WHERE id IN ({placeholders})", ids
+                f"UPDATE ai_notifiche SET letta = 1 WHERE id IN ({placeholders})", ids
             )
     return [r["messaggio"] for r in rows]
 
 
 async def run_notification_scan() -> None:
-    """Scansiona i nuovi cani e genera notifiche per gli utenti compatibili."""
+    """Scansiona i nuovi cani e genera ai_notifiche per gli utenti compatibili."""
     global _last_scan
 
     now = datetime.now(UTC)

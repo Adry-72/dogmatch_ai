@@ -7,7 +7,7 @@ from config import settings
 logger = logging.getLogger(__name__)
 
 _pool: Optional[aiomysql.Pool] = None
-
+# ciao
 
 async def create_pool() -> None:
     global _pool
@@ -60,7 +60,7 @@ async def ensure_cani_created_at() -> None:
 async def ensure_notifications_table() -> None:
     async with get_db() as cur:
         await cur.execute("""
-            CREATE TABLE IF NOT EXISTS notifiche (
+            CREATE TABLE IF NOT EXISTS ai_notifiche (
                 id        INT AUTO_INCREMENT PRIMARY KEY,
                 user_id   VARCHAR(36) NOT NULL,
                 cane_id   INT         NOT NULL,
