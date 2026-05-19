@@ -5,6 +5,8 @@ from tools.knowledge import get_knowledge_base_info
 from tools.search_web import search_web
 from tools.memory import save_memory, save_reminder, clear_reminder
 from tools.moderation import moderation_flag
+from tools.booking import get_available_slots, book_area_slot, get_user_bookings, cancel_booking
+from tools.activity import get_activity_stats
 
 logger = logging.getLogger(__name__)
 
@@ -12,6 +14,7 @@ _TOOL_MAP = {
     "search_dogs_semantic": lambda inp, uid: search_dogs_semantic(
         query=inp["query"],
         filters=inp.get("filters"),
+        user_id=uid,
     ),
     "analyze_user_profile": lambda inp, uid: analyze_user_profile(
         user_id=inp["user_id"],
@@ -45,6 +48,25 @@ _TOOL_MAP = {
         content=inp["content"],
         reason=inp["reason"],
         user_id=uid,
+    ),
+    "get_activity_stats": lambda inp, uid: get_activity_stats(
+        user_id=uid,
+    ),
+    "get_available_slots": lambda inp, uid: get_available_slots(
+        data=inp["data"],
+        area_id=inp.get("area_id"),
+    ),
+    "book_area_slot": lambda inp, uid: book_area_slot(
+        user_id=uid,
+        area_id=inp["area_id"],
+        data_ora=inp["data_ora"],
+    ),
+    "get_user_bookings": lambda inp, uid: get_user_bookings(
+        user_id=uid,
+    ),
+    "cancel_booking": lambda inp, uid: cancel_booking(
+        user_id=uid,
+        codice=inp["codice"],
     ),
 }
 

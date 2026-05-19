@@ -1,6 +1,8 @@
+import json
 import logging
 import aiomysql
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import Optional
 from config import settings
 
@@ -91,6 +93,87 @@ async def ensure_embeddings_column() -> None:
                 "ALTER TABLE cani ADD COLUMN embedding_hash VARCHAR(64) NULL"
             )
             logger.info("Colonne embedding e embedding_hash aggiunte alla tabella cani.")
+
+
+async def ensure_knowledge_table() -> None:
+    async with get_db() as cur:
+        await cur.execute("""
+            CREATE TABLE IF NOT EXISTS ai_knowledge_base (
+                chiave        VARCHAR(100)  NOT NULL PRIMARY KEY,
+                titolo        VARCHAR(255)  NOT NULL,
+                contenuto     LONGTEXT      NOT NULL,
+                tags          JSON          NULL,
+                aggiornato_at DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP
+                                            ON UPDATE CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        """)
+
+
+async def seed_knowledge_from_json(json_path: Path) -> None:
+    async with get_db() as cur:
+        await cur.execute("SELECT COUNT(*) AS cnt FROM ai_knowledge_base")
+        row = await cur.fetchone()
+        if row["cnt"] > 0:
+            return
+        with open(json_path, "r", encoding="utf-8") as f:
+            kb = json.load(f)
+        for chiave, entry in kb.items():
+            await cur.execute(
+                """INSERT INTO ai_knowledge_base (chiave, titolo, contenuto, tags)
+                   VALUES (%s, %s, %s, %s)
+                   ON DUPLICATE KEY UPDATE
+                     titolo=VALUES(titolo), contenuto=VALUES(contenuto), tags=VALUES(tags)""",
+                (chiave, entry.get("title", chiave), entry.get("content", ""),
+                 json.dumps(entry.get("tags", []))),
+            )
+        logger.info("Knowledge base: %d voci importate da JSON.", len(kb))
+
+
+async def ensure_booking_tables() -> None:
+    async with get_db() as cur:
+        await cur.execute("""
+            CREATE TABLE IF NOT EXISTS aree_cani (
+                id                  INT AUTO_INCREMENT PRIMARY KEY,
+                nome                VARCHAR(150) NOT NULL,
+                citta               VARCHAR(100) NOT NULL,
+                provincia           VARCHAR(5)   NOT NULL,
+                separazione_taglie  TINYINT(1)   NOT NULL DEFAULT 0
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        """)
+        await cur.execute("""
+            CREATE TABLE IF NOT EXISTS prenotazioni_area (
+                id        INT AUTO_INCREMENT PRIMARY KEY,
+                codice    VARCHAR(15)  NOT NULL UNIQUE,
+                user_id   VARCHAR(36)  NOT NULL,
+                area_id   INT          NOT NULL,
+                data_ora  DATETIME     NOT NULL,
+                stato     ENUM('attiva','cancellata') NOT NULL DEFAULT 'attiva',
+                creata_at DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_area_data (area_id, data_ora),
+                INDEX idx_user_stato (user_id, stato)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        """)
+
+
+async def seed_aree_cani() -> None:
+    async with get_db() as cur:
+        await cur.execute("SELECT COUNT(*) AS cnt FROM aree_cani")
+        row = await cur.fetchone()
+        if row["cnt"] > 0:
+            return
+        aree = [
+            ("Area Cani Parco Sempione", "Milano",  "MI", 1),
+            ("Dog Park Navigli",         "Milano",  "MI", 0),
+            ("Area Cani Villa Borghese", "Roma",    "RM", 1),
+            ("Dog Park Valentino",       "Torino",  "TO", 0),
+            ("Area Cani Parco Virgiliano","Napoli", "NA", 0),
+            ("Dog Area Cascine",         "Firenze", "FI", 1),
+        ]
+        await cur.executemany(
+            "INSERT INTO aree_cani (nome, citta, provincia, separazione_taglie) VALUES (%s, %s, %s, %s)",
+            aree,
+        )
+        logger.info("Aree cani: %d aree certificate inserite.", len(aree))
 
 
 async def ensure_memory_table() -> None:
