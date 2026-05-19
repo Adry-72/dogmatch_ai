@@ -29,13 +29,17 @@ except ImportError:
     logger.info("sentence-transformers non installato: uso TF-IDF come fallback.")
 
 
+_MIN_SCORE = 0.20  # soglia minima affinità (cosine similarity)
+_TOP_K = 5         # numero massimo di risultati
+
+
 def _build_dog_text(dog: dict) -> str:
     sesso = "maschio" if dog.get("sesso") == "M" else "femmina"
     parts = [
         dog.get("razza", ""),
         dog.get("taglia", ""),
         sesso,
-        str(dog.get("eta", "")),
+        f"{dog['eta']} anni" if dog.get("eta") is not None else "",
         dog.get("descrizione", ""),
         dog.get("info_sanitarie", ""),
     ]
@@ -95,7 +99,11 @@ async def _save_embeddings_batch(items: list) -> None:
         logger.warning("Errore salvataggio embedding: %s", exc)
 
 
-async def search_dogs_semantic(query: str, filters: Optional[dict] = None) -> str:
+async def search_dogs_semantic(
+    query: str,
+    filters: Optional[dict] = None,
+    user_id: Optional[str] = None,
+) -> str:
     filters = filters or {}
 
     sql = """
@@ -109,6 +117,9 @@ async def search_dogs_semantic(query: str, filters: Optional[dict] = None) -> st
     """
     params = []
 
+    if user_id:
+        sql += " AND c.utente_id != %s"
+        params.append(user_id)
     if filters.get("taglia"):
         sql += " AND c.taglia = %s"
         params.append(filters["taglia"])
@@ -173,20 +184,28 @@ async def search_dogs_semantic(query: str, filters: Optional[dict] = None) -> st
     else:
         scores = await asyncio.to_thread(_similarity_tfidf, query.lower(), texts)
 
-    ranked = sorted(zip(dogs, scores), key=lambda x: x[1], reverse=True)[:5]
+    ranked = sorted(zip(dogs, scores), key=lambda x: x[1], reverse=True)
+    ranked = [(d, s) for d, s in ranked if s >= _MIN_SCORE][:_TOP_K]
 
-    lines = [f"Trovati i cani più compatibili con '{query}':\n"]
+    if not ranked:
+        return (
+            f"Non ho trovato cani sufficientemente compatibili con '{query}'. "
+            "Prova a descrivere meglio il carattere cercato o a rimuovere alcuni filtri."
+        )
+
+    lines = [f"Trovati {len(ranked)} cani compatibili con '{query}':\n"]
     for i, (dog, score) in enumerate(ranked, 1):
         verified = "✓ Verificato" if dog.get("is_verificato") else ""
         riprod = "| Disponibile accoppiamento" if dog.get("disponibilita_riproduttiva") else ""
         desc = (dog.get("descrizione") or "Nessuna descrizione")[:120]
         sesso_str = "M" if dog.get("sesso") == "M" else "F"
+        eta_str = f"{dog['eta']} anni" if dog.get("eta") is not None else "età n/d"
         lines.append(
-            f"{i}. **{dog['nome']}** ({dog['razza']}, {sesso_str}, {dog['eta']} anni, {dog['taglia']}) "
+            f"{i}. **{dog['nome']}** ({dog['razza']}, {sesso_str}, {eta_str}, {dog['taglia']}) "
             f"— {dog.get('provincia') or 'n/d'} "
             f"[Proprietario: {dog.get('proprietario_nome') or 'n/d'}] {verified} {riprod}\n"
             f"   \"{desc}\"\n"
-            f"   Affinità: {int(score * 100)}%"
+            f"   Affinità: {max(0, int(score * 100))}%"
         )
 
     return "\n".join(lines)

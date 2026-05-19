@@ -216,6 +216,107 @@ TOOLS = [
     {
         "type": "function",
         "function": {
+            "name": "get_activity_stats",
+            "description": (
+                "Mostra le statistiche di attività dell'utente su DogMatch: "
+                "match attivi, messaggi non letti, like ricevuti in attesa, like inviati. "
+                "Usalo quando l'utente chiede 'quanti match ho', 'ho messaggi', "
+                "'qualcuno ha messo like', 'come va la mia attività', 'ho richieste in attesa'."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_available_slots",
+            "description": (
+                "Mostra gli slot orari liberi nelle aree cani certificate DogMatch per una data. "
+                "Usalo quando l'utente vuole prenotare un'area cani o chiede disponibilità."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "data": {
+                        "type": "string",
+                        "description": "Data nel formato YYYY-MM-DD, es: '2025-06-10'",
+                    },
+                    "area_id": {
+                        "type": "integer",
+                        "description": "ID dell'area specifica (opzionale). Se omesso mostra tutte le aree.",
+                    },
+                },
+                "required": ["data"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "book_area_slot",
+            "description": (
+                "Prenota uno slot da 1 ora in un'area cani certificata DogMatch. "
+                "Usalo SOLO dopo aver mostrato la disponibilità con get_available_slots "
+                "e ottenuto conferma esplicita dall'utente su area, data e orario."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "area_id": {
+                        "type": "integer",
+                        "description": "ID dell'area cani da prenotare",
+                    },
+                    "data_ora": {
+                        "type": "string",
+                        "description": "Data e ora nel formato 'YYYY-MM-DD HH:MM', es: '2025-06-10 10:00'",
+                    },
+                },
+                "required": ["area_id", "data_ora"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_user_bookings",
+            "description": (
+                "Mostra le prenotazioni attive dell'utente nelle aree cani. "
+                "Usalo quando l'utente chiede le sue prenotazioni o vuole vedere i codici."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "cancel_booking",
+            "description": (
+                "Cancella una prenotazione tramite codice (formato DM-XXXXXXXX). "
+                "Usalo quando l'utente vuole cancellare una prenotazione e fornisce il codice."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "codice": {
+                        "type": "string",
+                        "description": "Codice prenotazione nel formato DM-XXXXXXXX",
+                    },
+                },
+                "required": ["codice"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "moderation_flag",
             "description": (
                 "Segnala contenuti inappropriati, richieste non etiche o pratiche "

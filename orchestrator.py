@@ -112,8 +112,8 @@ async def _rag_context(message: str, user_id: str) -> str:
     enriched_query = f"{message} {profile}".strip() if profile else message
 
     try:
-        result = await search_dogs_semantic(query=enriched_query)
-        if result.startswith("Nessun cane"):
+        result = await search_dogs_semantic(query=enriched_query, user_id=user_id)
+        if result.startswith("Nessun cane") or result.startswith("Non ho trovato"):
             return ""
         return (
             "--- Cani pre-caricati in base alla richiesta ---\n"
