@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DogMatch — Presentazione</title>
+<style>
+  /* ── Reset & Base ─────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --blu:     #0047AB;
+    --blu-dk:  #0a1e32;
+    --arancio: #FF8C00;
+    --rosa:    #E91E63;
+    --verde:   #388E3C;
+    --viola:   #6B1EB4;
+    --teal:    #00838F;
+    --scuro:   #0f1432;
+    --grigio:  #F5F7FC;
+    --bianco:  #ffffff;
+    --testo:   #1e1e32;
+  }
+  html, body {
+    width: 100%; height: 100%;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #111;
+    overflow: hidden;
+  }
+
+  /* ── Slide container ──────────────────────────────── */
+  #deck {
+    position: relative;
+    width: 100vw; height: 100vh;
+  }
+  .slide {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    opacity: 0; pointer-events: none;
+    transition: opacity .45s ease, transform .45s ease;
+    transform: translateX(60px);
+    overflow: hidden;
+  }
+  .slide.active {
+    opacity: 1; pointer-events: all;
+    transform: translateX(0);
+  }
+  .slide.out {
+    opacity: 0;
+    transform: translateX(-60px);
+  }
+
+  /* ── Nav ─────────────────────────────────────────── */
+  #nav {
+    position: fixed; bottom: 22px; left: 50%;
+    transform: translateX(-50%);
+    display: flex; align-items: center; gap: 18px;
+    background: rgba(0,0,0,.55); backdrop-filter: blur(8px);
+    border-radius: 40px; padding: 10px 24px;
+    z-index: 9999; user-select: none;
+  }
+  #nav button {
+    background: none; border: 2px solid rgba(255,255,255,.4);
+    color: #fff; border-radius: 50%;
+    width: 40px; height: 40px; font-size: 18px;
+    cursor: pointer; transition: .2s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  #nav button:hover { background: rgba(255,255,255,.15); border-color: #fff; }
+  #nav button:disabled { opacity: .25; cursor: default; }
+  #counter { color: #fff; font-size: 14px; font-weight: 600; min-width: 52px; text-align: center; }
+  #dots { display: flex; gap: 7px; align-items: center; }
+  .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: rgba(255,255,255,.3); cursor: pointer;
+    transition: .25s; border: none;
+  }
+  .dot.on { background: var(--arancio); transform: scale(1.4); }
+  #fullbtn {
+    background: none; border: none; color: rgba(255,255,255,.5);
+    cursor: pointer; font-size: 16px; padding: 4px;
+    transition: .2s;
+  }
+  #fullbtn:hover { color: #fff; }
+  #hint {
+    position: fixed; bottom: 80px; right: 28px;
+    color: rgba(255,255,255,.35); font-size: 12px;
+    pointer-events: none;
+  }
+
+  /* ── Utility classes ──────────────────────────────── */
+  .row { display: flex; gap: 16px; }
+  .col { flex: 1; }
+  .center { text-align: center; }
+  .card {
+    border-radius: 10px; padding: 20px;
+    border: 2px solid transparent;
+  }
+  .badge {
+    display: inline-block; padding: 4px 14px;
+    border-radius: 20px; font-size: 12px;
+    font-weight: 700; color: #fff; margin: 3px;
+  }
+  .pill {
+    display: inline-block; padding: 5px 14px;
+    border-radius: 6px; font-size: 12px;
+    font-weight: 700; color: #fff; margin: 3px 3px 3px 0;
+  }
+
+  /* ── Slide 1: Cover ───────────────────────────────── */
+  #s1 {
+    background: var(--scuro);
+    border-top: 8px solid var(--blu);
+    border-bottom: 8px solid var(--arancio);
+  }
+  #s1 .cover-inner {
+    display: flex; flex-direction: column;
+    justify-content: center; align-items: flex-start;
+    padding: 0 8% 0 9%; height: 100%;
+    position: relative; z-index: 1;
+  }
+  #s1::before {
+    content: ''; position: absolute;
+    right: -80px; top: -80px;
+    width: 520px; height: 520px; border-radius: 50%;
+    background: rgba(0,71,171,.25); pointer-events: none;
+  }
+  #s1::after {
+    content: ''; position: absolute;
+    right: 60px; bottom: -60px;
+    width: 360px; height: 360px; border-radius: 50%;
+    background: rgba(255,140,0,.12); pointer-events: none;
+  }
+  #s1 h1 { font-size: clamp(52px, 7vw, 88px); color: #fff; font-weight: 900; line-height: 1; }
+  #s1 .sub { font-size: clamp(16px, 2vw, 22px); color: #b4c8ff; margin: 14px 0 6px; }
+  #s1 .tag { font-size: clamp(13px, 1.5vw, 17px); color: #8ca5d8; font-style: italic; }
+  #s1 .divider {
+    width: 280px; height: 3px; background: var(--arancio);
+    margin: 24px 0; border-radius: 2px;
+  }
+  #s1 .techs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 28px; }
+  #s1 .repos {
+    display: flex; gap: 10px; flex-wrap: wrap;
+  }
+  .repo-box {
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.15);
+    border-radius: 10px; padding: 12px 20px;
+    text-align: center; min-width: 130px;
+  }
+  .repo-box .rname { color: #fff; font-weight: 700; font-size: 14px; }
+  .repo-box .rstack { color: rgba(180,190,230,.7); font-size: 11px; margin-top: 4px; }
+  #s1 .meta {
+    position: absolute; bottom: 28px; left: 0; right: 0;
+    text-align: center; color: rgba(100,120,180,.6); font-size: 12px;
+  }
+
+  /* ── Slide header ──────────────────────────────────── */
+  .slide-header {
+    padding: 22px 7% 18px;
+    border-bottom: 1px solid rgba(255,255,255,.12);
+  }
+  .slide-header h2 { font-size: clamp(22px, 3vw, 34px); font-weight: 800; color: #fff; }
+  .slide-header p { font-size: 14px; opacity: .7; margin-top: 4px; color: #fff; }
+  .slide-body { flex: 1; padding: 24px 7%; overflow-y: auto; }
+
+  /* ── Slide 2: Progetto ────────────────────────────── */
+  #s2 { background: var(--grigio); }
+  #s2 .slide-header { background: var(--blu); }
+  #s2 .slide-body { color: var(--testo); }
+  #s2 .intro {
+    font-size: 15px; line-height: 1.7;
+    background: #fff; border-left: 4px solid var(--blu);
+    padding: 16px 20px; border-radius: 0 8px 8px 0;
+    margin-bottom: 22px;
+  }
+  .prob-sol { display: grid; grid-template-columns: 1fr 48px 1fr; gap: 0; align-items: center; }
+  .prob-card {
+    background: #FFF3E0; border: 2px solid var(--arancio);
+    border-radius: 12px; padding: 20px;
+  }
+  .prob-card h3 { color: var(--arancio); font-size: 18px; margin-bottom: 12px; }
+  .sol-card {
+    background: #E8F5E9; border: 2px solid var(--verde);
+    border-radius: 12px; padding: 20px;
+  }
+  .sol-card h3 { color: var(--verde); font-size: 18px; margin-bottom: 12px; }
+  .prob-sol .arrow-mid {
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px; color: var(--blu); font-weight: 900;
+  }
+  #s2 ul { list-style: none; padding: 0; }
+  #s2 ul li { padding: 5px 0; font-size: 14px; line-height: 1.5; }
+  #s2 ul li::before { content: '→ '; color: inherit; font-weight: 700; }
+
+  /* ── Slide 3: Numeri ──────────────────────────────── */
+  #s3 { background: var(--scuro); }
+  #s3 .slide-header { background: rgba(255,140,0,.2); border-bottom-color: var(--arancio); }
+  #s3 .slide-header h2 { color: #fff; }
+  #s3 .stats-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 14px; margin-bottom: 20px;
+  }
+  .stat-card {
+    background: rgba(255,255,255,.05);
+    border: 2px solid var(--c, #555);
+    border-radius: 12px; padding: 20px 12px;
+    text-align: center;
+  }
+  .stat-card .num {
+    font-size: clamp(32px, 4vw, 52px); font-weight: 900;
+    color: var(--c, #fff); line-height: 1;
+  }
+  .stat-card .lbl { font-size: 13px; color: rgba(255,255,255,.7); margin-top: 8px; }
+  #s3 .repo-row {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+  }
+  .repo-stat {
+    border-radius: 10px; overflow: hidden;
+    border: 1px solid rgba(255,255,255,.1);
+  }
+  .repo-stat .rh {
+    padding: 10px 14px; font-weight: 700;
+    font-size: 13px; color: #fff;
+  }
+  .repo-stat .rb {
+    background: rgba(255,255,255,.04);
+    padding: 10px 14px;
+  }
+  .repo-stat .rb div { font-size: 12px; color: rgba(255,255,255,.6); padding: 3px 0; }
+
+  /* ── Slide 4: Architettura ────────────────────────── */
+  #s4 { background: var(--grigio); }
+  #s4 .slide-header { background: var(--blu); }
+  #s4 .arch-diagram {
+    display: grid;
+    grid-template-columns: 180px 60px 220px 60px 180px;
+    grid-template-rows: auto 40px auto;
+    gap: 8px; align-items: center;
+    margin-bottom: 18px;
+  }
+  .arch-box {
+    border-radius: 10px; padding: 14px;
+    text-align: center; color: #fff;
+    font-weight: 700; font-size: 13px;
+  }
+  .arch-box .sub { font-size: 11px; font-weight: 400; opacity: .8; margin-top: 5px; }
+  .arch-arrow {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    font-size: 22px; color: var(--blu);
+    gap: 2px;
+  }
+  .arch-arrow .albl { font-size: 10px; color: var(--arancio); font-weight: 600; }
+  #s4 .flow-box {
+    background: #EEF2FF; border-left: 4px solid var(--blu);
+    border-radius: 0 10px 10px 0; padding: 14px 18px;
+    font-size: 13px; line-height: 1.8; color: var(--testo);
+  }
+  #s4 .db-row {
+    display: flex; gap: 12px; margin-top: 12px;
+  }
+  .db-box {
+    flex: 1; border-radius: 8px; padding: 10px 14px;
+    text-align: center; color: #fff;
+    font-size: 12px; font-weight: 600;
+  }
+
+  /* ── Slide 5: Funzionalità ─────────────────────────── */
+  #s5 { background: var(--grigio); }
+  #s5 .slide-header { background: var(--blu); }
+  #s5 .feat-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+  }
+  .feat-card { border-radius: 10px; overflow: hidden; }
+  .feat-card .fh {
+    padding: 10px 14px; font-weight: 800;
+    font-size: 13px; color: #fff; letter-spacing: .5px;
+  }
+  .feat-card .fb {
+    padding: 12px 14px; font-size: 12.5px;
+    line-height: 1.6; color: var(--testo);
+    background: #fff; border: 2px solid;
+    border-top: none; border-radius: 0 0 10px 10px;
+    min-height: 90px;
+  }
+
+  /* ── Slide 6: SnoutBot ────────────────────────────── */
+  #s6 { background: var(--blu-dk); }
+  #s6 .slide-header { background: rgba(255,140,0,.2); border-bottom-color: var(--arancio); }
+  #s6 .slide-header h2 { color: #fff; }
+  #s6 .steps {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 14px; margin-bottom: 18px;
+  }
+  .step-card {
+    background: rgba(255,255,255,.05);
+    border: 2px solid var(--arancio);
+    border-radius: 10px; padding: 16px;
+  }
+  .step-card h4 { color: var(--arancio); font-size: 15px; margin-bottom: 8px; }
+  .step-card p { color: rgba(200,215,255,.85); font-size: 13px; line-height: 1.6; }
+  #s6 .tools-wrap {
+    background: rgba(255,255,255,.04);
+    border-radius: 10px; padding: 14px 16px;
+  }
+  #s6 .tools-wrap h4 { color: var(--arancio); font-size: 14px; margin-bottom: 10px; }
+  #s6 .tools-list { display: flex; flex-wrap: wrap; gap: 6px; }
+
+  /* ── Slide 7: Matching ────────────────────────────── */
+  #s7 { background: var(--grigio); }
+  #s7 .slide-header { background: var(--rosa); }
+  #s7 .intenti { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+  .gioco-card { background: #E8F5E9; border: 2px solid var(--verde); border-radius: 12px; padding: 18px; }
+  .gioco-card h3 { color: var(--verde); font-size: 18px; margin-bottom: 10px; }
+  .accopp-card { background: #FCE4EC; border: 2px solid var(--rosa); border-radius: 12px; padding: 18px; }
+  .accopp-card h3 { color: var(--rosa); font-size: 18px; margin-bottom: 10px; }
+  #s7 ul { list-style: none; }
+  #s7 ul li { padding: 4px 0; font-size: 13.5px; }
+  #s7 ul li::before { content: '✓  '; font-weight: 700; }
+  .pipeline {
+    display: flex; gap: 6px; align-items: center;
+    flex-wrap: wrap;
+  }
+  .pipe-step {
+    border-radius: 8px; padding: 10px 14px;
+    color: #fff; font-size: 12px; font-weight: 700;
+    text-align: center; flex: 1; min-width: 90px;
+  }
+  .pipe-arrow { color: var(--blu); font-size: 20px; font-weight: 900; }
+
+  /* ── Slide 8: Real-time ────────────────────────────── */
+  #s8 { background: var(--scuro); }
+  #s8 .slide-header { background: rgba(0,131,143,.3); border-bottom-color: var(--teal); }
+  #s8 .slide-header h2 { color: #fff; }
+  #s8 .rt-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .event-list { display: flex; flex-direction: column; gap: 8px; }
+  .event-row {
+    display: grid; grid-template-columns: 170px 1fr;
+    align-items: center; gap: 12px;
+    background: rgba(255,255,255,.05);
+    border-radius: 8px; padding: 10px 14px;
+  }
+  .event-name { color: var(--teal); font-weight: 700; font-size: 13px; }
+  .event-desc { color: rgba(200,230,225,.8); font-size: 12.5px; }
+  .push-cards { display: flex; flex-direction: column; gap: 10px; }
+  .push-card {
+    border-radius: 10px; padding: 14px;
+    background: rgba(255,255,255,.05);
+  }
+  .push-card .pt { font-weight: 700; font-size: 14px; }
+  .push-card .pd { font-size: 12px; color: rgba(200,215,255,.7); margin-top: 5px; }
+  .push-card .pm { font-size: 11px; color: rgba(140,165,210,.6); margin-top: 5px; font-style: italic; }
+  #s8 .hl-box {
+    margin-top: 16px; background: rgba(255,140,0,.08);
+    border-left: 3px solid var(--arancio);
+    border-radius: 0 8px 8px 0; padding: 12px 16px;
+    color: rgba(200,215,255,.8); font-size: 13px; line-height: 1.8;
+  }
+
+  /* ── Slide 9: Stack ────────────────────────────────── */
+  #s9 { background: var(--grigio); }
+  #s9 .slide-header { background: var(--blu); }
+  #s9 .stack-cols { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .stack-col { border-radius: 10px; overflow: hidden; }
+  .stack-col .sh { padding: 12px 14px; color: #fff; font-weight: 800; font-size: 13px; }
+  .stack-col .sb { background: #EEF2FF; padding: 12px 10px; border: 2px solid; border-top: none; border-radius: 0 0 10px 10px; }
+  .dep-pill {
+    display: block; padding: 5px 10px; margin-bottom: 5px;
+    border-radius: 5px; color: #fff;
+    font-size: 11px; font-weight: 600;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  #s9 .cloud-row {
+    display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap;
+  }
+  .cloud-pill {
+    background: var(--scuro); color: #fff;
+    border-radius: 20px; padding: 6px 16px;
+    font-size: 12px; font-weight: 600;
+    border: 1px solid rgba(255,255,255,.15);
+  }
+
+  /* ── Slide 10: Conclusioni ─────────────────────────── */
+  #s10 { background: var(--scuro); border-bottom: 8px solid var(--arancio); }
+  #s10 .slide-header { background: rgba(0,71,171,.3); border-bottom-color: var(--blu); }
+  #s10 .slide-header h2 { color: #fff; }
+  #s10 .strengths {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 12px; margin-bottom: 20px;
+  }
+  .str-card { border-radius: 10px; overflow: hidden; }
+  .str-card .sh { padding: 10px 14px; color: #fff; font-weight: 700; font-size: 14px; }
+  .str-card .sb {
+    background: rgba(255,255,255,.05);
+    border: 2px solid; border-top: none;
+    border-radius: 0 0 10px 10px;
+    padding: 12px 14px; font-size: 12.5px;
+    color: rgba(200,215,255,.85); line-height: 1.6;
+  }
+  #s10 .sign {
+    text-align: center; padding: 18px 0 6px;
+    border-top: 2px solid var(--arancio);
+  }
+  #s10 .sign h3 { color: #fff; font-size: 22px; margin-bottom: 6px; }
+  #s10 .sign p { color: rgba(160,185,230,.7); font-size: 13px; }
+
+  /* ── Scrollbar ─────────────────────────────────────── */
+  .slide-body::-webkit-scrollbar { width: 4px; }
+  .slide-body::-webkit-scrollbar-track { background: transparent; }
+  .slide-body::-webkit-scrollbar-thumb { background: rgba(0,0,0,.15); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<div id="deck">
+
+  <!-- ══════════ SLIDE 1: COVER ══════════ -->
+  <div class="slide active" id="s1">
+    <div class="cover-inner">
+      <h1>DogMatch</h1>
+      <p class="sub">La piattaforma di social networking per cani</p>
+      <p class="tag">Trova il compagno perfetto per il tuo cane.</p>
+      <div class="divider"></div>
+      <div class="techs">
+        <span class="badge" style="background:#0047AB">Python · FastAPI</span>
+        <span class="badge" style="background:#388E3C">Node.js · Express</span>
+        <span class="badge" style="background:#0277BD">React 19</span>
+        <span class="badge" style="background:#6B1EB4">React Native · Expo</span>
+        <span class="badge" style="background:#B71C1C">GPT-4o</span>
+        <span class="badge" style="background:#00838F">Socket.IO</span>
+        <span class="badge" style="background:#4A148C">MySQL</span>
+      </div>
+      <div class="repos">
+        <div class="repo-box"><div class="rname">dogmatch_ai</div><div class="rstack">Python / FastAPI</div></div>
+        <div class="repo-box"><div class="rname">backend_node</div><div class="rstack">Node.js / Express</div></div>
+        <div class="repo-box"><div class="rname">Frontend-DogMatch</div><div class="rstack">React / Vite</div></div>
+        <div class="repo-box"><div class="rname">dogmatch-mobile</div><div class="rstack">React Native / Expo</div></div>
+      </div>
+    </div>
+    <div class="meta">Giugno 2026 &nbsp;|&nbsp; 4 repository &nbsp;|&nbsp; 146 file sorgente &nbsp;|&nbsp; GPT-4o</div>
+  </div>
+
+  <!-- ══════════ SLIDE 2: PROGETTO ══════════ -->
+  <div class="slide" id="s2">
+    <div class="slide-header" style="background:var(--blu)">
+      <h2>Il Progetto</h2>
+      <p>Cosa e' DogMatch e quale problema risolve</p>
+    </div>
+    <div class="slide-body">
+      <div class="intro">
+        DogMatch funziona come un'app di dating, ma per cani: gli utenti creano un profilo
+        per il proprio cane, scorrono i profili di altri cani nella zona, inviano like e —
+        quando l'interesse e' reciproco — si crea un <strong>match</strong> che apre una chat
+        tra i proprietari. Disponibile su <strong>Web, iOS e Android</strong>.
+      </div>
+      <div class="prob-sol">
+        <div class="prob-card">
+          <h3>⚠ Il Problema</h3>
+          <ul>
+            <li>Trovare compagni di gioco o partner per l'accoppiamento e' difficile.</li>
+            <li>Ci si affida al caso nei parchi o a gruppi Facebook disorganizzati.</li>
+            <li>Nessun filtro per razza, eta', carattere o distanza.</li>
+            <li>Nessuno strumento dedicato e sicuro per incontri tra cani.</li>
+          </ul>
+        </div>
+        <div class="arrow-mid">→</div>
+        <div class="sol-card">
+          <h3>✓ La Soluzione DogMatch</h3>
+          <ul>
+            <li>Profili cane dettagliati con foto, razza, taglia, pedigree.</li>
+            <li>Feed discovery geolocalizzato con filtri per intento e distanza.</li>
+            <li>Sistema like/match reciproco con chat real-time.</li>
+            <li>Chatbot AI SnoutBot per assistenza personalizzata 24/7.</li>
+            <li>Notifiche push multicanale su tutte le piattaforme.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ SLIDE 3: NUMERI ══════════ -->
+  <div class="slide" id="s3">
+    <div class="slide-header">
+      <h2 style="color:var(--arancio)">DogMatch in numeri</h2>
+      <p>Tutto il progetto a colpo d'occhio</p>
+    </div>
+    <div class="slide-body">
+      <div class="stats-grid">
+        <div class="stat-card" style="--c:var(--arancio)"><div class="num">4</div><div class="lbl">Repository</div></div>
+        <div class="stat-card" style="--c:#64B4FF"><div class="num">146</div><div class="lbl">File sorgente</div></div>
+        <div class="stat-card" style="--c:#64DC82"><div class="num">59</div><div class="lbl">API Endpoint</div></div>
+        <div class="stat-card" style="--c:#FF7888"><div class="num">14</div><div class="lbl">Tool AI (GPT-4o)</div></div>
+        <div class="stat-card" style="--c:#C896FF"><div class="num">8</div><div class="lbl">Modelli Database</div></div>
+        <div class="stat-card" style="--c:#FFB450"><div class="num">30</div><div class="lbl">Schermate/Pagine</div></div>
+        <div class="stat-card" style="--c:#64DCC8"><div class="num">27</div><div class="lbl">Knowledge base</div></div>
+        <div class="stat-card" style="--c:#FF8CB4"><div class="num">26</div><div class="lbl">Razze supportate</div></div>
+      </div>
+      <div class="repo-row">
+        <div class="repo-stat"><div class="rh" style="background:var(--blu)">dogmatch_ai</div><div class="rb"><div>28 file Python</div><div>14 tool AI</div><div>6 test file</div><div>2 endpoint REST</div></div></div>
+        <div class="repo-stat"><div class="rh" style="background:var(--verde)">backend_node</div><div class="rb"><div>37 file JS</div><div>59 endpoint API</div><div>8 modelli Sequelize</div><div>11 migration DB</div></div></div>
+        <div class="repo-stat"><div class="rh" style="background:#0277BD">Frontend-DogMatch</div><div class="rb"><div>36 file JSX/JS</div><div>10 pagine</div><div>13 componenti</div><div>5 servizi API</div></div></div>
+        <div class="repo-stat"><div class="rh" style="background:var(--viola)">dogmatch-mobile</div><div class="rb"><div>45 file JS/TS</div><div>20 screen</div><div>3 Redux slice</div><div>5 servizi + 2 hook</div></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ SLIDE 4: ARCHITETTURA ══════════ -->
+  <div class="slide" id="s4">
+    <div class="slide-header" style="background:var(--blu)">
+      <h2>Architettura del Sistema</h2>
+      <p>Come i 4 repository comunicano tra loro</p>
+    </div>
+    <div class="slide-body">
+      <div style="display:grid;grid-template-columns:170px 50px 240px 50px 170px;gap:10px;align-items:center;margin-bottom:16px">
+        <div>
+          <div class="arch-box" style="background:#0277BD;margin-bottom:10px">Frontend Web<div class="sub">React · :5173</div></div>
+          <div class="arch-box" style="background:var(--viola)">App Mobile<div class="sub">React Native · Expo</div></div>
+        </div>
+        <div class="arch-arrow">→<div class="albl">REST+WS</div></div>
+        <div class="arch-box" style="background:var(--blu);padding:22px 14px">
+          backend_node<div class="sub">Express · :3000<br>JWT · Socket.IO · Sequelize<br>Rate limit · Multer</div>
+        </div>
+        <div class="arch-arrow">→<div class="albl">HTTP proxy</div></div>
+        <div class="arch-box" style="background:var(--verde)">
+          dogmatch_ai<div class="sub">FastAPI · :8000<br>GPT-4o · 14 tool<br>sentence-transformers</div>
+        </div>
+      </div>
+      <div class="db-row">
+        <div class="db-box" style="background:#4A148C">MySQL Database<br><span style="font-size:11px;font-weight:400;opacity:.8">Sequelize ORM · aiomysql pool</span></div>
+        <div class="db-box" style="background:var(--teal)">Socket.IO Events<br><span style="font-size:11px;font-weight:400;opacity:.8">bot_typing · notifiche · messaggi</span></div>
+        <div class="db-box" style="background:#B71C1C">OpenAI GPT-4o<br><span style="font-size:11px;font-weight:400;opacity:.8">API cloud esterna</span></div>
+        <div class="db-box" style="background:#6A1FA0">Expo Push Service<br><span style="font-size:11px;font-weight:400;opacity:.8">iOS · Android · notifiche</span></div>
+      </div>
+      <div class="flow-box" style="margin-top:14px">
+        <strong>Flusso chat AI:</strong>
+        Client → <code>POST /api/chat/bot</code> (JWT) →
+        backend_node carica profilo da MySQL →
+        Proxy a dogmatch_ai:8000 →
+        GPT-4o tool-calling loop →
+        risposta al client
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ SLIDE 5: FUNZIONALITÀ ══════════ -->
+  <div class="slide" id="s5">
+    <div class="slide-header" style="background:var(--blu)">
+      <h2>Funzionalita' Principali</h2>
+      <p>Tutto quello che puo' fare un utente su DogMatch</p>
+    </div>
+    <div class="slide-body">
+      <div class="feat-grid">
+        <div class="feat-card"><div class="fh" style="background:var(--blu)">PROFILO CANE</div><div class="fb" style="border-color:var(--blu)">Registrazione 2 step: dati utente + dati cane. Upload foto, 26 razze, pedigree PDF, geolocalizzazione, bio e info sanitarie.</div></div>
+        <div class="feat-card"><div class="fh" style="background:var(--verde)">DISCOVERY</div><div class="fb" style="border-color:var(--verde)">Feed card scorrevoli con swipe. Filtri: intento (gioco/accoppiamento), distanza (provincia/regione). 50 cani per batch. Ordine casuale.</div></div>
+        <div class="feat-card"><div class="fh" style="background:var(--rosa)">MATCHING</div><div class="fb" style="border-color:var(--rosa)">Like reciproco = match automatico. Notifica push istantanea a entrambi i proprietari. Regole razza + sesso per accoppiamento.</div></div>
+        <div class="feat-card"><div class="fh" style="background:var(--arancio)">CHAT REAL-TIME</div><div class="fb" style="border-color:var(--arancio)">Messaggi P2P tra match confermati. Socket.IO: typing indicator, consegna istantanea. Soft-delete e segnalazione utenti.</div></div>
+        <div class="feat-card"><div class="fh" style="background:var(--viola)">SNOUTBOT AI</div><div class="fb" style="border-color:var(--viola)">GPT-4o con 14 tool: cerca cani, prenota parchi, risponde a domande, memorizza preferenze, ricerca web live con Tavily.</div></div>
+        <div class="feat-card"><div class="fh" style="background:var(--teal)">NOTIFICHE PUSH</div><div class="fb" style="border-color:var(--teal)">3 canali: DB + Socket.IO + Expo Push. Tipi: richiesta match, match accettato, messaggio. AI proattiva ogni 5 minuti.</div></div>
+        <div class="feat-card"><div class="fh" style="background:#4A148C">ADMIN PANEL</div><div class="fb" style="border-color:#4A148C">Dashboard KPI: utenti, match, segnalazioni. Verifica pedigree, blocco account, cambio ruolo. Su web e mobile.</div></div>
+        <div class="feat-card"><div class="fh" style="background:#00838F">MAPPE</div><div class="fb" style="border-color:#00838F">Mappa Leaflet interattiva sul web. GPS via expo-location su mobile. Filtri geografici nel discovery feed.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ SLIDE 6: SNOUTBOT ══════════ -->
+  <div class="slide" id="s6">
+    <div class="slide-header" style="background:rgba(255,140,0,.2);border-bottom:1px solid var(--arancio)">
+      <h2 style="color:var(--arancio)">SnoutBot — L'Assistente AI</h2>
+      <p>GPT-4o con tool-calling orchestrato, RAG pre-fetch e memoria persistente</p>
+    </div>
+    <div class="slide-body">
+      <div class="steps">
+        <div class="step-card">
+          <h4>1 — Intent Detection</h4>
+          <p>Cosine similarity embedding vs centroide di 10 frasi prototipo. Se score ≥ 0.35: e' una ricerca cani → pre-fetch RAG. Fallback: 29 keyword stem italiani se il modello non e' disponibile.</p>
+        </div>
+        <div class="step-card">
+          <h4>2 — RAG Pre-fetch</h4>
+          <p>Arricchisce la query con il profilo del cane dell'utente. sentence-transformers (384-dim) trova top-5 cani. Li inserisce nel system prompt: GPT-4o risponde senza tool-call aggiuntivo.</p>
+        </div>
+        <div class="step-card">
+          <h4>3 — System Prompt Contestualizzato</h4>
+          <p>context (da Node.js) + identita' SnoutBot + nome utente + memoria AI persistente + notifiche non lette + RAG. Ogni risposta e' personalizzata sull'utente reale.</p>
+        </div>
+        <div class="step-card">
+          <h4>4 — Tool-Calling Loop (max 5 iter)</h4>
+          <p>finish_reason='stop' → risposta finale. finish_reason='tool_calls' → esegui tool, aggiungi risultato, itera. Tutti i tool sono asincroni (asyncio.to_thread per CPU-bound).</p>
+        </div>
+      </div>
+      <div class="tools-wrap">
+        <h4>I 14 Tool disponibili per GPT-4o</h4>
+        <div class="tools-list">
+          <span class="pill" style="background:var(--arancio)">search_dogs_semantic</span>
+          <span class="pill" style="background:var(--blu)">analyze_user_profile</span>
+          <span class="pill" style="background:var(--verde)">get_knowledge_base_info</span>
+          <span class="pill" style="background:var(--teal)">update_user_profile</span>
+          <span class="pill" style="background:var(--rosa)">save_memory</span>
+          <span class="pill" style="background:#7B1FA2">save_reminder</span>
+          <span class="pill" style="background:#455A64">clear_reminder</span>
+          <span class="pill" style="background:#E65100">search_web</span>
+          <span class="pill" style="background:#1565C0">get_activity_stats</span>
+          <span class="pill" style="background:#00695C">get_available_slots</span>
+          <span class="pill" style="background:#4527A0">book_area_slot</span>
+          <span class="pill" style="background:#283593">get_user_bookings</span>
+          <span class="pill" style="background:#BF360C">cancel_booking</span>
+          <span class="pill" style="background:#880E4F">moderation_flag</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ SLIDE 7: MATCHING ══════════ -->
+  <div class="slide" id="s7">
+    <div class="slide-header" style="background:var(--rosa)">
+      <h2>Il Sistema di Matching</h2>
+      <p>Like, dislike, match reciproco e discovery feed</p>
+    </div>
+    <div class="slide-body">
+      <div class="intenti">
+        <div class="gioco-card">
+          <h3>🌳 Intento: GIOCO</h3>
+          <ul>
+            <li>Aperto a tutti i cani — nessuna restrizione di razza.</li>
+            <li>Nessun vincolo di eta' o sesso.</li>
+            <li>Notifica: "Il tuo cane ti invita a giocare!"</li>
+            <li>Match se like reciproco sullo stesso intento.</li>
+          </ul>
+        </div>
+        <div class="accopp-card">
+          <h3>♥ Intento: ACCOPPIAMENTO</h3>
+          <ul>
+            <li>Stessa razza + sesso opposto obbligatori.</li>
+            <li>Cane deve avere almeno 1 anno di eta'.</li>
+            <li>disponibilitaRiproduttiva deve essere attiva.</li>
+            <li>HTTP 422 con messaggio esplicativo se regola violata.</li>
+          </ul>
+        </div>
+      </div>
+      <p style="font-weight:700;color:var(--testo);margin-bottom:10px">Pipeline del Like (inviaLike)</p>
+      <div class="pipeline">
+        <div class="pipe-step" style="background:var(--blu)">Verifica proprieta'</div>
+        <div class="pipe-arrow">›</div>
+        <div class="pipe-step" style="background:var(--verde)">Regole intento</div>
+        <div class="pipe-arrow">›</div>
+        <div class="pipe-step" style="background:var(--arancio)">Anti-duplicato</div>
+        <div class="pipe-arrow">›</div>
+        <div class="pipe-step" style="background:var(--rosa)">Match reciproco?</div>
+        <div class="pipe-arrow">›</div>
+        <div class="pipe-step" style="background:var(--teal)">Notifiche</div>
+        <div class="pipe-arrow">›</div>
+        <div class="pipe-step" style="background:var(--viola)">Risposta client</div>
+      </div>
+      <div style="margin-top:16px;background:#EEF2FF;border-left:4px solid var(--blu);padding:12px 16px;border-radius:0 8px 8px 0;font-size:13px;line-height:1.7;color:var(--testo)">
+        <strong>Discovery feed:</strong> esclude cani gia' votati e propri cani. Filtri Sequelize dinamici per razza/sesso/eta'/disponibilita'. Filtri geografici via JOIN su Utente. Ordine casuale <code>sequelize.random()</code>. Limite 50 cani/batch.
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ SLIDE 8: REAL-TIME ══════════ -->
+  <div class="slide" id="s8">
+    <div class="slide-header" style="background:rgba(0,131,143,.3);border-bottom:1px solid var(--teal)">
+      <h2>Real-time &amp; Mobile</h2>
+      <p>Socket.IO, notifiche push Expo e app React Native cross-platform</p>
+    </div>
+    <div class="slide-body">
+      <div class="rt-cols">
+        <div>
+          <p style="color:var(--teal);font-weight:700;margin-bottom:10px;font-size:15px">Eventi Socket.IO</p>
+          <div class="event-list">
+            <div class="event-row"><span class="event-name">bot_typing</span><span class="event-desc">Pallini animati nella chat AI</span></div>
+            <div class="event-row"><span class="event-name">nuovo_messaggio</span><span class="event-desc">Consegna messaggio P2P in tempo reale</span></div>
+            <div class="event-row"><span class="event-name">nuova_notifica</span><span class="event-desc">Unshift Redux → badge aggiornato</span></div>
+            <div class="event-row"><span class="event-name">user_typing</span><span class="event-desc">Indicatore digitazione chat P2P</span></div>
+            <div class="event-row"><span class="event-name">join / leave_chat</span><span class="event-desc">Gestione stanze interazione</span></div>
+            <div class="event-row"><span class="event-name">notifica_admin</span><span class="event-desc">Alert sulla admin_room</span></div>
+          </div>
+        </div>
+        <div>
+          <p style="color:var(--arancio);font-weight:700;margin-bottom:10px;font-size:15px">Push Notification (Expo)</p>
+          <div class="push-cards">
+            <div class="push-card" style="border:2px solid var(--rosa)"><div class="pt" style="color:var(--rosa)">richiesta_match</div><div class="pd">Qualcuno ha messo like al tuo cane</div><div class="pm">link: 'requests' → RichiesteRicevute</div></div>
+            <div class="push-card" style="border:2px solid var(--verde)"><div class="pt" style="color:var(--verde)">match_accettato</div><div class="pd">Match! Si apre la chat tra i due proprietari</div><div class="pm">link: 'chat:&lt;id&gt;' → MessagesScreen</div></div>
+            <div class="push-card" style="border:2px solid var(--blu)"><div class="pt" style="color:#64B4FF">messaggio</div><div class="pd">Nuovo messaggio nella chat P2P</div><div class="pm">DB + Socket.IO + Expo Push in parallelo</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="hl-box">
+        <strong style="color:var(--arancio)">App Mobile — Highlights:</strong>
+        Redux 3 slice reattivi (auth · interazioni · notifiche) &nbsp;·&nbsp;
+        Interceptor Axios: JWT auto + logout su 401 &nbsp;·&nbsp;
+        storage.js: SecureStore / localStorage &nbsp;·&nbsp;
+        FlatList invertita nella chat &nbsp;·&nbsp;
+        Admin tab condizionale per ruolo admin
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ SLIDE 9: STACK ══════════ -->
+  <div class="slide" id="s9">
+    <div class="slide-header" style="background:var(--blu)">
+      <h2>Stack Tecnologico</h2>
+      <p>Tutte le tecnologie, librerie e versioni del progetto</p>
+    </div>
+    <div class="slide-body">
+      <div class="stack-cols">
+        <div class="stack-col"><div class="sh" style="background:var(--blu)">dogmatch_ai · Python</div><div class="sb" style="border-color:var(--blu)">
+          <span class="dep-pill" style="background:var(--blu)">fastapi 0.136.1</span>
+          <span class="dep-pill" style="background:var(--blu)">uvicorn 0.46.0</span>
+          <span class="dep-pill" style="background:var(--blu)">openai 2.36.0</span>
+          <span class="dep-pill" style="background:var(--blu)">sentence-transformers 5.4.1</span>
+          <span class="dep-pill" style="background:var(--blu)">torch 2.11.0</span>
+          <span class="dep-pill" style="background:var(--blu)">scikit-learn 1.8.0</span>
+          <span class="dep-pill" style="background:var(--blu)">aiomysql 0.3.2</span>
+          <span class="dep-pill" style="background:var(--blu)">PyJWT 2.12.1</span>
+          <span class="dep-pill" style="background:var(--blu)">pydantic 2.13.4</span>
+          <span class="dep-pill" style="background:var(--blu)">pytest 9.0.3</span>
+        </div></div>
+        <div class="stack-col"><div class="sh" style="background:var(--verde)">backend_node · Node.js</div><div class="sb" style="border-color:var(--verde)">
+          <span class="dep-pill" style="background:var(--verde)">express 5.2.1</span>
+          <span class="dep-pill" style="background:var(--verde)">sequelize 6.37.8</span>
+          <span class="dep-pill" style="background:var(--verde)">mysql2 3.22.3</span>
+          <span class="dep-pill" style="background:var(--verde)">socket.io 4.8.3</span>
+          <span class="dep-pill" style="background:var(--verde)">jsonwebtoken 9.0.3</span>
+          <span class="dep-pill" style="background:var(--verde)">bcrypt 6.0.0</span>
+          <span class="dep-pill" style="background:var(--verde)">express-rate-limit 8.4.1</span>
+          <span class="dep-pill" style="background:var(--verde)">multer 2.1.1</span>
+          <span class="dep-pill" style="background:var(--verde)">nodemailer 8.0.7</span>
+          <span class="dep-pill" style="background:var(--verde)">axios 1.15.1</span>
+        </div></div>
+        <div class="stack-col"><div class="sh" style="background:#0277BD">Frontend · React</div><div class="sb" style="border-color:#0277BD">
+          <span class="dep-pill" style="background:#0277BD">react 19.2.4</span>
+          <span class="dep-pill" style="background:#0277BD">react-dom 19.2.4</span>
+          <span class="dep-pill" style="background:#0277BD">react-router-dom 7.15.0</span>
+          <span class="dep-pill" style="background:#0277BD">vite 8.0.1</span>
+          <span class="dep-pill" style="background:#0277BD">bootstrap 5.3.8</span>
+          <span class="dep-pill" style="background:#0277BD">leaflet 1.9.4</span>
+          <span class="dep-pill" style="background:#0277BD">react-leaflet 5.0.0</span>
+          <span class="dep-pill" style="background:#0277BD">socket.io-client 4.8.3</span>
+        </div></div>
+        <div class="stack-col"><div class="sh" style="background:var(--viola)">Mobile · Expo</div><div class="sb" style="border-color:var(--viola)">
+          <span class="dep-pill" style="background:var(--viola)">expo 54.0.33</span>
+          <span class="dep-pill" style="background:var(--viola)">react-native 0.81.5</span>
+          <span class="dep-pill" style="background:var(--viola)">@reduxjs/toolkit 2.11.2</span>
+          <span class="dep-pill" style="background:var(--viola)">axios 1.13.6</span>
+          <span class="dep-pill" style="background:var(--viola)">socket.io-client 4.8.3</span>
+          <span class="dep-pill" style="background:var(--viola)">expo-notifications 0.32.17</span>
+          <span class="dep-pill" style="background:var(--viola)">expo-secure-store 15.0.8</span>
+          <span class="dep-pill" style="background:var(--viola)">expo-location 19.0.8</span>
+          <span class="dep-pill" style="background:var(--viola)">deck-swiper 2.0.19</span>
+          <span class="dep-pill" style="background:var(--viola)">typescript 5.9.2</span>
+        </div></div>
+      </div>
+      <div class="cloud-row">
+        <span class="cloud-pill">☁ OpenAI GPT-4o</span>
+        <span class="cloud-pill">☁ Expo Push Service</span>
+        <span class="cloud-pill">☁ Tavily API (web search)</span>
+        <span class="cloud-pill">☁ HuggingFace Hub (sentence-transformers)</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ SLIDE 10: CONCLUSIONI ══════════ -->
+  <div class="slide" id="s10">
+    <div class="slide-header" style="background:rgba(0,71,171,.25);border-bottom:1px solid var(--blu)">
+      <h2>Punti di forza e Conclusioni</h2>
+      <p>Cosa rende DogMatch un progetto solido e ben strutturato</p>
+    </div>
+    <div class="slide-body">
+      <div class="strengths">
+        <div class="str-card"><div class="sh" style="background:var(--blu)">Architettura pulita</div><div class="sb" style="border-color:var(--blu)">4 repo con responsabilita' nette. Nessun client chiama mai il servizio AI direttamente. backend_node e' l'unico gateway autenticato.</div></div>
+        <div class="str-card"><div class="sh" style="background:var(--arancio)">AI contestualizzata</div><div class="sb" style="border-color:var(--arancio)">SnoutBot conosce profilo, cane, match e preferenze dell'utente. Non e' un chatbot generico ma un assistente personalizzato.</div></div>
+        <div class="str-card"><div class="sh" style="background:var(--teal)">Real-time completo</div><div class="sb" style="border-color:var(--teal)">Socket.IO su tutte le piattaforme. Push Expo per raggiungere l'utente anche con l'app chiusa o in background.</div></div>
+        <div class="str-card"><div class="sh" style="background:var(--verde)">Cross-platform</div><div class="sb" style="border-color:var(--verde)">Un'unica API REST serve web e mobile. storage.js astrae SecureStore e localStorage con la stessa interfaccia.</div></div>
+        <div class="str-card"><div class="sh" style="background:var(--rosa)">Sicurezza multi-layer</div><div class="sb" style="border-color:var(--rosa)">JWT, bcrypt, rate limiting, validazione input express-validator e verifica partecipazione nelle chat P2P.</div></div>
+        <div class="str-card"><div class="sh" style="background:var(--viola)">Scalabilita' del dato</div><div class="sb" style="border-color:var(--viola)">Embedding con cache LRU + persistenza MySQL. Background scanner ogni 5 min senza bloccare l'event loop.</div></div>
+      </div>
+      <div class="sign">
+        <h3>DogMatch Project</h3>
+        <p>4 repository &nbsp;·&nbsp; 146 file &nbsp;·&nbsp; 59 endpoint &nbsp;·&nbsp; 14 tool AI &nbsp;·&nbsp; 30 schermate &nbsp;·&nbsp; GPT-4o</p>
+      </div>
+    </div>
+  </div>
+
+</div><!-- #deck -->
+
+<!-- ══ Navigazione ══ -->
+<div id="nav">
+  <button id="prev" title="Slide precedente (←)">&#8592;</button>
+  <div id="dots"></div>
+  <span id="counter">1 / 10</span>
+  <button id="next" title="Slide successiva (→)">&#8594;</button>
+  <button id="fullbtn" title="Schermo intero (F)">⛶</button>
+</div>
+<div id="hint">← → per navigare &nbsp;·&nbsp; F per schermo intero</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const dotsEl = document.getElementById('dots');
+  const counter = document.getElementById('counter');
+  const prevBtn = document.getElementById('prev');
+  const nextBtn = document.getElementById('next');
+  const fullBtn = document.getElementById('fullbtn');
+  const N = slides.length;
+  let cur = 0;
+
+  // Crea i pallini
+  slides.forEach((_, i) => {
+    const d = document.createElement('button');
+    d.className = 'dot' + (i === 0 ? ' on' : '');
+    d.title = `Slide ${i+1}`;
+    d.onclick = () => go(i);
+    dotsEl.appendChild(d);
+  });
+
+  function go(idx) {
+    if (idx < 0 || idx >= N) return;
+    slides[cur].classList.remove('active');
+    slides[cur].classList.add('out');
+    setTimeout(() => slides[cur < idx ? cur : idx + (cur !== idx ? 0 : 0)].classList.remove('out'), 450);
+    slides[cur].addEventListener('transitionend', function h() {
+      slides[cur].classList.remove('out');
+      slides[cur].removeEventListener('transitionend', h);
+    });
+    cur = idx;
+    slides[cur].classList.add('active');
+    document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('on', i === cur));
+    counter.textContent = `${cur + 1} / ${N}`;
+    prevBtn.disabled = cur === 0;
+    nextBtn.disabled = cur === N - 1;
+  }
+
+  prevBtn.onclick = () => go(cur - 1);
+  nextBtn.onclick = () => go(cur + 1);
+  prevBtn.disabled = true;
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') { e.preventDefault(); go(cur + 1); }
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')                    { e.preventDefault(); go(cur - 1); }
+    if (e.key === 'f' || e.key === 'F') toggleFull();
+    if (e.key === 'Home') go(0);
+    if (e.key === 'End')  go(N - 1);
+  });
+
+  // Touch swipe
+  let tx = 0;
+  document.addEventListener('touchstart', e => { tx = e.touches[0].clientX; }, { passive: true });
+  document.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - tx;
+    if (Math.abs(dx) > 50) dx < 0 ? go(cur + 1) : go(cur - 1);
+  });
+
+  function toggleFull() {
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+    else document.exitFullscreen();
+  }
+  fullBtn.onclick = toggleFull;
+
+  // Nascondi hint dopo 4s
+  setTimeout(() => { document.getElementById('hint').style.opacity = '0'; }, 4000);
+</script>
+</body>
+</html>
